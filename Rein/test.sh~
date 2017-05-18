@@ -1,0 +1,43 @@
+#!/bin/bash
+
+ulimit -s 6553600
+
+g++ -std=c++11 chrono_time.h data_structure.h generator.h generator.cpp printer.h printer.cpp rein.h rein.cpp util.h util.cpp main_atts.cpp -o rein_atts
+
+g++ -std=c++11 chrono_time.h data_structure.h generator.h generator.cpp printer.h printer.cpp rein.h rein.cpp util.h util.cpp main_cons.cpp -o rein_cons
+
+g++ -std=c++11 chrono_time.h data_structure.h generator.h generator.cpp printer.h printer.cpp rein.h rein.cpp util.h util.cpp main_width.cpp -o rein_width
+
+g++ -std=c++11 chrono_time.h data_structure.h generator.h generator.cpp printer.h printer.cpp rein.h rein.cpp util.h util.cpp main.cpp -o rein
+
+for ((subs = 20000; subs <= 100000; subs+=20000)) do
+	./rein $subs
+	echo "subs $subs done"
+done
+
+for ((subs = 200000; subs <= 2000000; subs+=100000)) do
+	./rein $subs
+	echo "subs $subs done"
+done
+
+g++ -std=c++11 chrono_time.h data_structure.h generator.h generator.cpp printer.h printer.cpp rein.h rein.cpp util.h util.cpp main_atts.cpp -o rein_atts
+
+for ((atts = 10; atts <= 100; atts+=2)) do
+	./rein_atts $atts
+	echo "atts $atts done"
+done
+
+g++ -std=c++11 chrono_time.h data_structure.h generator.h generator.cpp printer.h printer.cpp rein.h rein.cpp util.h util.cpp main_cons.cpp -o rein_cons
+
+for ((cons = 5; cons <= 30; cons+=2)) do
+	./rein_cons $cons
+	echo "cons $cons done"
+done
+
+g++ -std=c++11 chrono_time.h data_structure.h generator.h generator.cpp printer.h printer.cpp rein.h rein.cpp util.h util.cpp main_width.cpp -o rein_width
+
+for x in 0.01 0.05 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8
+do
+	./rein_width $x
+	echo "width $x done"
+done
