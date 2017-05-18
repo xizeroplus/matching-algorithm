@@ -7,7 +7,7 @@ using namespace std;
 struct Cnt{
     int att;
     int value;
-    int op;     //  0 : "=" | 1 : ">=" | 2 : "<="
+    int op;     //  op==0 -> "="  op==1 -> ">="  op==2 -> "<="
 };
 
 struct IntervalCnt{
@@ -38,6 +38,11 @@ struct Combo{
     int subID;
 };
 
+struct IntervalCombo{
+    int lowValue, highValue;
+    int subID;
+};
+
 struct Pair{
     int att;
     int value;
@@ -49,4 +54,4 @@ struct Pub{
 };
 
 
-#endif
+#endif //_DATA_STRUCTURE_H
