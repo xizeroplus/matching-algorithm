@@ -1,5 +1,5 @@
 #include <iostream>
-#include "opIndex.h"
+#include "tama.h"
 using namespace std;
 int main(int argc, char **argv)
 {
@@ -13,12 +13,12 @@ int main(int argc, char **argv)
     int valDis;         // The distribution of values in subs and pubs. 0:uniform
     double alpha;       // Parameter for Zipf distribution.
     double width;       // Width of a predicate.
+    int level = 13;     // The depth of Tama.
 
     freopen("paras.txt", "r", stdin);
     cin >> subs >> pubs >> atts >> cons >> m >> attDis >> valDis >> valDom;
     cin >> alpha >> width;
 
-    m = atts;           // Note that Rein requires m == atts.
     vector<double> insertTimeList;
     vector<double> matchTimeList;
     vector<double> matchSubList;
@@ -29,8 +29,7 @@ int main(int argc, char **argv)
     gen.GenPubList();
 
 
-    opIndex a;
-    a.calcFrequency(gen.subList);
+    Tama a(atts, valDom, level);
 
     // insert
     for (int i = 0; i < subs; i++)
@@ -59,7 +58,7 @@ int main(int argc, char **argv)
 
 
     // output
-    string outputFileName = "opindex.txt";
+    string outputFileName = "tama.txt";
     string content = Util::Int2String(subs) + "\t" + Util::Double2String(Util::Average(insertTimeList)) + "\t" +
                      Util::Double2String(Util::Average(matchTimeList)) + "\t" +
                      Util::Double2String(Util::Average(matchSubList));
@@ -67,7 +66,7 @@ int main(int argc, char **argv)
 
 
     // check
-    //Util::Check(gen, "opindex");
+    //Util::Check(gen, "tama");
 
     return 0;
 }

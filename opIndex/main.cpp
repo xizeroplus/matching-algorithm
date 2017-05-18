@@ -18,7 +18,6 @@ int main(int argc, char **argv)
     cin >> subs >> pubs >> atts >> cons >> m >> attDis >> valDis >> valDom;
     cin >> alpha >> width;
 
-    m = atts;           // Note that Rein requires m == atts.
     vector<double> insertTimeList;
     vector<double> matchTimeList;
     vector<double> matchSubList;
