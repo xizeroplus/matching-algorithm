@@ -1,18 +1,23 @@
-**编译指令:**
+**Introduction: **
+
+In this repo, we implemented several state-of-the-art matching algorithms for content-based publish/subscribe systems. These matching algorithms include [Rein](https://ieeexplore.ieee.org/document/6848147/), [OpIndex](http://www.vldb.org/pvldb/vol7/p613-zhang.pdf), [H-Tree](https://ieeexplore.ieee.org/document/6663515/), [Tama](https://ieeexplore.ieee.org/document/5961731/), and [Siena](https://dl.acm.org/citation.cfm?doid=863955.863975). 
+
+**Quick Start: **
+
+```python
 g++ -std=c++11 chrono_time.h data_structure.h generator.h generator.cpp main.cpp printer.h printer.cpp rein.h rein.cpp util.h util.cpp -o rein
-
-（c++11需要g++ 4.8以上的版本支持）
-
-**输入参数:**
-从文件paras.txt中读入。
-
-**运行:**
 ulimit -s 819200
-
 ./rein
+```
 
-**输出:**
-每行四个数值，依次表示1.订阅总数 2.单个订阅插入用时 3.单个事件匹配用时 4.匹配的订阅总数
+Please note that this projected is based on C++11 standards, and requires a GNU C++ compiler no older than version 4.8.
 
-20000	0.002196	5.335285	19.340000
+
+**Input: **
+The input parameters are read from paras.txt
+
+
+**Output: **
+
+Each line of the output contains four numbers, indicating the total number of subscriptions, the inserting time of each subscription, the matching time of each event, and the number of subscriptions that have been matched to at least one event. 
 
