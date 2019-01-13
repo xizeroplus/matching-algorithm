@@ -10,7 +10,7 @@ ulimit -s 819200
 ./rein
 ```
 
-Please note that this projected is based on C++11 standards, and requires a GNU C++ compiler no older than version 4.8.
+Please note that this project is based on C++11 standards, and requires a GNU C++ compiler no older than version 4.8.
 
 
 ## Input: 
