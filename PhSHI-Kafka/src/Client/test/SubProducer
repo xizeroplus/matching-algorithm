@@ -1,0 +1,58 @@
+package Client;
+
+import java.io.File;
+import java.util.Properties;
+import java.util.Scanner;
+
+import MySerdes.ValueSerde;
+
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerRecord;
+
+import Structure.SubscribeVal;
+
+public class SubProducer {
+
+	public static void main(String[] args) {
+		Properties Props =  new Properties();
+		Props.put("bootstrap.servers", "localhost:9092");
+		Props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+		Props.put("value.serializer", ValueSerde.SubValSerde.class.getName());
+
+		KafkaProducer<String, SubscribeVal> producer = new KafkaProducer<>(Props);
+
+		int num = 0;
+		Scanner s = null;
+		try{
+			File file = new File("E:\\Kafka\\subData.txt");
+			s = new Scanner(file);
+			num = s.nextInt();
+		}catch (Throwable e){
+			System.exit(1);
+		}
+		for(int i = 0; i < num; i++) {
+			String SubId = s.next();
+			int StockId = s.nextInt();
+			int AttributeNum = s.nextInt();
+			SubscribeVal sVal = new SubscribeVal(AttributeNum);
+			sVal.SubId = SubId;
+			sVal.StockId = StockId;
+			for(int j = 0; j < sVal.AttributeNum; j++){
+				sVal.subVals.get(j).attributeId = s.nextInt();
+				sVal.subVals.get(j).min_val = s.nextDouble();
+				sVal.subVals.get(j).max_val = s.nextDouble();
+			}
+			//Record
+			ProducerRecord<String, SubscribeVal> record = new ProducerRecord<>("NewSub", sVal);
+			//send
+			try {
+				producer.send(record).get();
+				System.err.println("Producer Send Success!");
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+		producer.close();
+		s.close();
+	}
+}
