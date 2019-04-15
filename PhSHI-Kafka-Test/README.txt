@@ -1,7 +1,7 @@
 This is a test of PhSHI! If the test program is applied in other scenarios, problems may occur. Please use with caution!
 
 Befor test, you need start Kafka. You can get quick start kafka related information on kafka's website https://kafka.apache.org/quickstart. If you don't want to build a kafka cluster, you can test it locally by doing the following:
-All test in a linux environment with jdk-11.0.2 or higth version. We have provided jdk-11.0.0 in PhSHI-Kafka-Test, you can use it.
+All test in a linux environment with jdk-11.0.2 or higth version. 
 
 First you need start zookeeper, Switch your directory to PhSHI-Kafka-Test/kafka_2.11-1.1.0, then start with the following command: ./bin/zookeeper-server-start.sh ./config/zookeeper.properties
 Next, satrt Kafka with this command: ./bin/kafka-server-start.sh ./config/server.properties
