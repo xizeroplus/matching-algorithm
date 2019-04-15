@@ -1,9 +1,8 @@
 package Client;
 
 import Structure.SubscribeVal;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
+
+import java.io.*;
 import java.text.DecimalFormat;
 import java.util.Random;
 import java.util.Scanner;
@@ -12,6 +11,7 @@ public class creatSub {
     private static int MaxAttriNum;
 
     public static void main(String[] args) {
+
         Scanner input = new Scanner(System.in);
         int num;
         int rate;
@@ -26,13 +26,14 @@ public class creatSub {
         System.out.println("input rate n(n/10000): ");
         rate = input.nextInt();
 
-        String subFile = "resources/sDate-a" + MaxAttriNum + "-r" + rate + ".txt";
+        String subFile = "resources/sDate-" + num/1000 + "k-a" + MaxAttriNum + "-r" + rate + ".txt";
         BufferedWriter bw = null;
         try{
             File file = new File(subFile);
             FileWriter fw = new FileWriter(file, true);
             bw = new BufferedWriter(fw);
         }catch (Throwable e){
+            System.err.println("file write failed!");
             System.exit(1);
         }
         String s = num + " " + MaxAttriNum + " " + rate;
@@ -50,7 +51,7 @@ public class creatSub {
         for (int i = 0; i < num; i++) {
             //stock_id = r.nextInt(100);
             stock_id = 1;
-            attribute_num = r.nextInt(MaxAttriNum) + 1;
+            attribute_num = r.nextInt(10) + 1;
             SubscribeVal sVal;
             sVal = new SubscribeVal(attribute_num);
             sVal.SubId = name[r.nextInt(3)];

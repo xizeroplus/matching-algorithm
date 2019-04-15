@@ -4,14 +4,30 @@ import MySerdes.ValueSerde;
 import Structure.EventVal;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import java.io.File;
+
+import java.io.*;
 import java.util.Properties;
 import java.util.Scanner;
 
 public class EventProducer {
 	public static void main(String[] args) {
+
+		Properties properties = new Properties();
+		try {
+			InputStream inputStream = new FileInputStream(new File("resources/config.properties"));
+			properties.load(inputStream);
+		} catch (FileNotFoundException e) {
+			System.err.println("properties file open failed!");
+			e.printStackTrace();
+		} catch (IOException e) {
+			System.err.println("properties file read failed");
+			e.printStackTrace();
+		}
+		String KafkaServer = properties.getProperty("KafkaServer");
+		String EventFile = properties.getProperty("EventFile");
+
 		Properties Props =  new Properties();
-		Props.put("bootstrap.servers", "192.168.101.15:9092,192.168.101.12:9092,192.168.101.28:9092");
+		Props.put("bootstrap.servers", KafkaServer);
 		Props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
 		Props.put("value.serializer", ValueSerde.EventValSerde.class.getName());
 		//creat producer
@@ -22,7 +38,7 @@ public class EventProducer {
 		int max_attri_num;
 		Scanner s = null;
 		try{
-			File file = new File("resources/eventData.txt");
+			File file = new File(EventFile);
 			s = new Scanner(file);
 		}catch (Throwable e){
 			System.exit(1);
@@ -43,8 +59,8 @@ public class EventProducer {
 		EventVal[] eVal = new EventVal[num];
 		for(int i = 0; i < num; i++) {
 			eVal[i] = new EventVal(attribute_num, stock_id);
-			for (int j = 0; j < max_attri_num; j++) {
-				if (j >= attribute_num) {
+			for(int j = 0; j < max_attri_num; j++) {
+				if(j >= attribute_num){
 					s.nextInt();
 					s.nextDouble();
 					continue;
@@ -53,22 +69,24 @@ public class EventProducer {
 				eVal[i].eventVals[j].val = s.nextDouble();
 			}
 		}
-		long time = System.currentTimeMillis();
-		int j=0;
-		while((System.currentTimeMillis() - time) < 300000){
+		//long time = System.currentTimeMillis();
+		//for(int i=0;i<num;i++){
+		int j = 0;
+		//while((System.currentTimeMillis() - time) < 22*60*1000){
+		while(j <  num){
 			int i = j % num;
 			eVal[i].EventProduceTime = System.currentTimeMillis();
 			// creat Record
-			ProducerRecord<String, EventVal> record = new ProducerRecord<>("NewEvent", eVal[i]);
+			ProducerRecord<String, EventVal> record = new ProducerRecord<>("Event", eVal[i]);
 			//send
 			try {
 				producer.send(record);
-				Thread.sleep(15);
+				Thread.sleep(5);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
 			j++;
-			System.err.println("Producer Send " + j + " Success!");
+			//System.err.println("Producer Send " + i + " Success!");
 		}
 		producer.close();
 		input.close();

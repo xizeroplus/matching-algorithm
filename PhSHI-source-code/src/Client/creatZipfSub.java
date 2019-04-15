@@ -33,14 +33,14 @@ public class creatZipfSub {
         System.out.println("input Alpha:");
         double alpha = input.nextDouble();
 
-        String subFile = "resources/Zipf-sDate-a" + MaxAttriNum + "-r" + rate + "-al" + alpha + ".txt";
+        String subFile = "resources/Zipf-sDate-" + num/1000 + "k-a" + MaxAttriNum + "-r" + rate + "-al" + alpha + ".txt";
         String[] name = { "Client1","Client2","Client3" };
         int attribute_num, stock_id;
         Random r = new Random();
         boolean[] a = new boolean[MaxAttriNum];
         zipf = new ZipfGenerator(MaxAttriNum, alpha);
         rankMap = new int[MaxAttriNum];
-        count = new int[MaxAttriNum];
+	count = new int[MaxAttriNum];
         for(int x = 0; x < MaxAttriNum; x++)a[x] = false;
         String s = num + " " + MaxAttriNum + " " + rate;
         for(int i=0;i<MaxAttriNum;i++){
@@ -54,6 +54,7 @@ public class creatZipfSub {
             FileWriter fw = new FileWriter(file, true);
             bw = new BufferedWriter(fw);
         }catch (Throwable e){
+            System.err.println("file write failed");
             System.exit(1);
         }
         try {
@@ -65,7 +66,7 @@ public class creatZipfSub {
         for (int i = 0; i < num; i++) {
             //stock_id = r.nextInt(100);
             stock_id = 1;
-            attribute_num = r.nextInt(MaxAttriNum) + 1;
+            attribute_num = r.nextInt(10) + 1;
             SubscribeVal sVal;
             sVal = new SubscribeVal(attribute_num);
             sVal.SubId = name[r.nextInt(3)];

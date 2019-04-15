@@ -8,40 +8,52 @@ import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.*;
 import org.apache.kafka.streams.kstream.KStream;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.util.Properties;
 import java.util.concurrent.*;
 
-import static java.lang.Math.*;
+import static java.lang.Math.pow;
+import static java.lang.Math.sqrt;
 
 public class REIN {
     private final static int TPYE_MATCH = 0;
     private final static int TYPE_SEND = 1;
     private final static int PART = 1000;
     private final static int MAX_VALUE = 1000;
-    private final static int MAX_THREAD_Num = 24;
+    private final static int MAX_THREAD_Num = 33;
     private final static int MAX_SUB_NUM = 1000001;
     private final static double GROUP_WIDTH = (double)MAX_VALUE / (double)PART;
     private final static int STOCKNUM = 2;
-    private final static int ATTRIBUTE_NUM = 100;
+    private final static int ATTRIBUTE_NUM = 300;
     private static int[] SubNum = new int[STOCKNUM];
     private static int matchNum = 0;
 
     private static Bucket[][][][] bucketlist = new Bucket[STOCKNUM][ATTRIBUTE_NUM][2][PART];
     private static BitSetVal[][] bitSet = new BitSetVal[STOCKNUM][MAX_SUB_NUM];
     private static ConNum[] conNum = new ConNum[STOCKNUM];
-    //private static Bucket[][] threadBucket = new Bucket[STOCKNUM][MAX_THREAD_Num];
+    private static Bucket[][] threadBucket = new Bucket[STOCKNUM][MAX_THREAD_Num];
 
     private static int SendThreadNum = 4;
     private static int match_thread_num = 1;
     private static int eventNum = 0;
 
-    private static final String mtFile = "resources/mt.txt";
-    //静态版本
+    private static final String mtFile = "resources/mt-rein.txt";
+
     public static void main(String[] args) {
+
+        Properties properties = new Properties();
+        try {
+            InputStream inputStream = new FileInputStream(new File("resources/config.properties"));
+            properties.load(inputStream);
+        } catch (FileNotFoundException e) {
+            System.err.println("properties file open failed!");
+            e.printStackTrace();
+        } catch (IOException e) {
+            System.err.println("properties file read failed");
+            e.printStackTrace();
+        }
+        String KafkaServer = properties.getProperty("KafkaServer");
+
         //initialize bucketlist
         for(int r = 0; r < STOCKNUM; r++) {
             SubNum[r] = 0;
@@ -53,13 +65,12 @@ public class REIN {
             }
         }
         //initialise threadpool
-        /*
         for(int i = 0;i < STOCKNUM;i++)
             for(int j= 0; j < MAX_THREAD_Num; j++){
                 threadBucket[i][j] = new Bucket(ATTRIBUTE_NUM);
             }
 
-         */
+
         ThreadPoolExecutor executorMatch = new ThreadPoolExecutor(0, Integer.MAX_VALUE,
                 60L, TimeUnit.SECONDS,
                 new SynchronousQueue<>());
@@ -68,13 +79,13 @@ public class REIN {
                 new LinkedBlockingQueue<>());
         //set config
         Properties props = new Properties();
-        props.put(StreamsConfig.APPLICATION_ID_CONFIG, "stream_index_1");
-        props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "192.168.101.15:9092,192.168.101.12:9092,192.168.101.28:9092");
+        props.put(StreamsConfig.APPLICATION_ID_CONFIG, "stream_index");
+        props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, KafkaServer);
         props.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass());
         props.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.String().getClass());
 
         Properties ProducerProps =  new Properties();
-        ProducerProps.put("bootstrap.servers", "192.168.101.15:9092,192.168.101.12:9092,192.168.101.28:9092");
+        ProducerProps.put("bootstrap.servers", KafkaServer);
         ProducerProps.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
         ProducerProps.put("value.serializer", ValueSerde.EventValSerde.class.getName());
         KafkaProducer<String, EventVal> producer = new KafkaProducer<>(ProducerProps);
@@ -82,9 +93,9 @@ public class REIN {
         final StreamsBuilder index_builder = new StreamsBuilder();
         final StreamsBuilder match_builder = new StreamsBuilder();
 
-        KStream<String, SubscribeVal> subscribe = index_builder.stream("NewSub",
+        KStream<String, SubscribeVal> subscribe = index_builder.stream("Sub",
                 Consumed.with(Serdes.String(), new ValueSerde.SubscribeSerde()));
-        KStream<String, EventVal> event = match_builder.stream("NewEvent",
+        KStream<String, EventVal> event = match_builder.stream("Event",
                 Consumed.with(Serdes.String(), new ValueSerde.EventSerde()));
 
         //parallel model
@@ -112,8 +123,8 @@ public class REIN {
             private void Match(){
                 int stock_id = this.v.StockId;
                 int attribute_num = v.AttributeNum;
-                for (int i = threadIdx; i < attribute_num; i+= match_thread_num) {
-                    //if(!threadBucket[stock_id][threadIdx].bitSet[i])continue;
+                for (int i = 0; i < attribute_num; i++) {
+                    if(!threadBucket[stock_id][threadIdx].bitSet[i])continue;
                     int attribute_id = this.v.eventVals[i].attributeId;
                     double val = this.v.eventVals[i].val;
                     int group = (int) (val / GROUP_WIDTH);
@@ -204,30 +215,36 @@ public class REIN {
                 group = (int)(max_val / GROUP_WIDTH);
                 bucketlist[stock_id][attribute_id][1][group].bucket.add(new List(sub_num_id, max_val));
             }
-            //long cost = System.nanoTime();
-            System.out.print("Sum: " + conNum[stock_id].ConSumNum);
-            int maxCon = 0;
-            for(int i = 0;i < ATTRIBUTE_NUM;i++){
-                maxCon = maxCon > conNum[stock_id].AttriConNum[i] ? maxCon : conNum[stock_id].AttriConNum[i];
-                //System.out.print(" " + conNum[stock_id].AttriConNum[i]);
-            }
-            //System.out.println();
-            //计算最佳并行度
-            int tmp = (int) (sqrt(((double)conNum[stock_id].ConSumNum / (double)maxCon))) + 1;
-            tmp = tmp > MAX_THREAD_Num ? MAX_THREAD_Num : tmp;
+
             System.out.println(" Client Name: " + subId + " Num Id: " + sub_num_id +
-                                " Attribute Num: " + attributeNum + " threadNum:" + tmp);
-            //任务划分
-            /*
-            if(match_thread_num != tmp){
-                match_thread_num = tmp;
-                //清空线程桶
-                for(int i = 0;i < tmp; i++){
+                                " Attribute Num: " + attributeNum);
+
+            SubNum[stock_id]++;
+        });
+        //filestream
+        File file = new File(mtFile);
+        FileWriter fw = null;
+        try {
+            fw = new FileWriter(file, true);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        BufferedWriter bw = new BufferedWriter(fw);
+
+        int[] matchT = {1,2,4,8,16,32};
+        //matcher
+        event.foreach((k,v) -> {
+            int stock_id = v.StockId;
+            if(eventNum%2000==0){
+                match_thread_num = matchT[(eventNum/2000)%6];
+                //Task division
+                //Empty threadBucket
+                for(int i = 0;i < match_thread_num; i++){
+                    threadBucket[stock_id][i].executeNum = 0;
                     for(int j = 0;j<ATTRIBUTE_NUM;j++){
                         threadBucket[stock_id][i].bitSet[j] = false;
                     }
                 }
-                double avg = (double)conNum[stock_id].ConSumNum / (double) tmp;
                 boolean[] bit = new boolean[ATTRIBUTE_NUM];
                 for(int i=0;i<ATTRIBUTE_NUM;i++)bit[i]=false;
                 for(int i=0;i<ATTRIBUTE_NUM;i++){
@@ -242,35 +259,10 @@ public class REIN {
                     }
                     bit[n] = true;
                     int t = 0;
-                    double min = Double.MAX_VALUE;
-                    //划分方案1：根据线程桶当前执行数与均值的方差划分
-                    for(int j=0;j<tmp;j++){
-                        double variance = (max + threadBucket[stock_id][j].executeNum - avg)*(max + threadBucket[stock_id][j].executeNum - avg);
-                        if(min > variance){
-                            min = variance;
-                            t = j;
-                        }
-                    }
-                    //划分方案2：选择执行数最小的线程桶插入
-                    for(int j=0;j<tmp;j++){
+                    int min = Integer.MAX_VALUE;
+                    for(int j=0;j<match_thread_num;j++){
                         if(min > threadBucket[stock_id][j].executeNum){
                             min = threadBucket[stock_id][j].executeNum;
-                            t = j;
-                        }
-                    }
-                    //划分方案3:根据所有线程桶中当前执行数间方差划分
-                    double t_avg = max;
-                    for(int j=0;j<tmp;j++)t_avg+=threadBucket[stock_id][j].executeNum;
-                    t_avg /= (double)tmp;
-                    for(int j=0;j<tmp;j++){
-                        double variance = 0;
-                        for(int l=0;l<tmp;l++){
-                            if(l==j)variance = variance + pow((max + threadBucket[stock_id][l].executeNum - t_avg), 2);
-                            else variance = variance + pow((threadBucket[stock_id][l].executeNum - t_avg), 2);
-                        }
-                        variance = sqrt(variance);
-                        if(min > variance){
-                            min = variance;
                             t = j;
                         }
                     }
@@ -278,29 +270,9 @@ public class REIN {
                     threadBucket[stock_id][t].bitSet[n] = true;
                 }
             }
-            cost = System.nanoTime() - cost;
-            */
-            SubNum[stock_id]++;
-        });
-        //filestream
-        File file = new File(mtFile);
-        FileWriter fw = null;
-        try {
-            fw = new FileWriter(file, true);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        BufferedWriter bw = new BufferedWriter(fw);
-
-        int[] matchT = {1,2,4,8,16,24};
-        //matcher
-        event.foreach((k,v) -> {
-            if(eventNum%1000==0) {
-                match_thread_num = matchT[eventNum / 1000];
-            }
             //compute event access delay
             long tmpTime = System.currentTimeMillis();
-            //EventVal eVal = value;
+
             v.EventArriveTime = tmpTime - v.EventProduceTime;
             //preprocess
             final  CountDownLatch latch = new CountDownLatch(match_thread_num);
@@ -320,6 +292,7 @@ public class REIN {
             try {
                 bw.write(s + "\n");
             } catch (IOException e) {
+                System.err.println("write file failed!");
                 e.printStackTrace();
             }
             //sender
@@ -336,7 +309,7 @@ public class REIN {
                 e.printStackTrace();
             }
             eventNum++;
-            System.out.println("send " + eventNum + " time: " + (System.nanoTime() - tmp)/1000000.0 + " matchNum:" + matchNum);
+            System.out.println("send " + eventNum + " time: " + s + " matchNum:" + matchNum+ " " + match_thread_num);
             matchNum = 0;
         });
 

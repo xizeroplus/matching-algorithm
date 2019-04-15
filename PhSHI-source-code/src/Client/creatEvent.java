@@ -17,6 +17,7 @@ public class creatEvent {
             FileWriter fw = new FileWriter(file, true);
             bw = new BufferedWriter(fw);
         }catch (Throwable e){
+            System.err.println("file write failed!");
             System.exit(1);
         }
         System.out.println("input event num: ");

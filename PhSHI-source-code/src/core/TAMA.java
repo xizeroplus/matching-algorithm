@@ -8,10 +8,7 @@ import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.*;
 import org.apache.kafka.streams.kstream.KStream;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.util.Properties;
 import java.util.concurrent.*;
 
@@ -19,9 +16,10 @@ public class TAMA {
     private final static int LEVEL = 11;
     private final static int MAX_VALUE = 1000;
     private final static int MAX_SUB_NUM = 1000001;
+    private final static int MAX_THREAD_Num = 33;
     private final static double[] CELL_WIDTH = new double[LEVEL];
     private final static int STOCKNUM = 2;
-    private final static int ATTRIBUTE_NUM = 300;
+    private final static int ATTRIBUTE_NUM = 100;
     private static int[] SubNum = new int[STOCKNUM];
 
     private static Bucket[][][][] bucketlist = new Bucket[STOCKNUM][ATTRIBUTE_NUM][LEVEL][];
@@ -31,9 +29,24 @@ public class TAMA {
     private static int matchNum = 0;
     private static int eventNum = 0;
 
-    private static final String mtFile = "resources/mt.txt";
+    private static ConNum[] conNum = new ConNum[STOCKNUM];
+    private static Bucket[][] threadBucket = new Bucket[STOCKNUM][MAX_THREAD_Num];
+
+    private static final String mtFile = "resources/mt-tama.txt";
 
     public static void main(String[] args) {
+        Properties properties = new Properties();
+        try {
+            InputStream inputStream = new FileInputStream(new File("resources/config.properties"));
+            properties.load(inputStream);
+        } catch (FileNotFoundException e) {
+            System.err.println("properties file open failed!");
+            e.printStackTrace();
+        } catch (IOException e) {
+            System.err.println("properties file read failed");
+            e.printStackTrace();
+        }
+        String KafkaServer = properties.getProperty("KafkaServer");
 
         //initialize bucketlis
         int[] tmp_t = new int[LEVEL];
@@ -41,6 +54,7 @@ public class TAMA {
             tmp_t[i] = (int) Math.pow(2, i);
         }
         for(int r = 0; r < STOCKNUM; r++){
+            conNum[r] = new ConNum(ATTRIBUTE_NUM);
             for(int j = 0; j < ATTRIBUTE_NUM; j++){
                 for(int w = 0; w < LEVEL; w++) {
                     CELL_WIDTH[w] = (double) MAX_VALUE / (double) tmp_t[w];
@@ -50,26 +64,30 @@ public class TAMA {
                 }
             }
         }
-        //
-        for(int i= 0; i < STOCKNUM; i++)
+        //initialise threadpool
+        for(int i = 0;i < STOCKNUM;i++) {
             SubNum[i] = 0;
+            for (int j = 0; j < MAX_THREAD_Num; j++) {
+                threadBucket[i][j] = new Bucket(ATTRIBUTE_NUM);
+            }
+        }
 
         ThreadPoolExecutor executorMatch = new ThreadPoolExecutor(0, Integer.MAX_VALUE,
                 60L, TimeUnit.SECONDS,
                 new SynchronousQueue<>());
-        ThreadPoolExecutor executorSend = new ThreadPoolExecutor(15, 15,
+        ThreadPoolExecutor executorSend = new ThreadPoolExecutor(8, 8,
                 0L, TimeUnit.MILLISECONDS,
                 new LinkedBlockingQueue<>());
 
         //set config
         Properties props = new Properties();
         props.put(StreamsConfig.APPLICATION_ID_CONFIG, "stream_index");
-        props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "192.168.101.15:9092,192.168.101.12:9092,192.168.101.28:9092");
+        props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, KafkaServer);
         props.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass());
         props.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.String().getClass());
 
         Properties ProducerProps =  new Properties();
-        ProducerProps.put("bootstrap.servers", "192.168.101.15:9092,192.168.101.12:9092,192.168.101.28:9092");
+        ProducerProps.put("bootstrap.servers", KafkaServer);
         ProducerProps.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
         ProducerProps.put("value.serializer", ValueSerde.EventValSerde.class.getName());
         KafkaProducer<String, EventVal> producer = new KafkaProducer<>(ProducerProps);
@@ -77,9 +95,9 @@ public class TAMA {
         final StreamsBuilder index_builder = new StreamsBuilder();
         final StreamsBuilder match_builder = new StreamsBuilder();
 
-        KStream<String, SubscribeVal> subscribe = index_builder.stream("NewSub",
+        KStream<String, SubscribeVal> subscribe = index_builder.stream("Sub",
                 Consumed.with(Serdes.String(), new ValueSerde.SubscribeSerde()));
-        KStream<String, EventVal> event = match_builder.stream("NewEvent",
+        KStream<String, EventVal> event = match_builder.stream("Event",
                 Consumed.with(Serdes.String(), new ValueSerde.EventSerde()));
 
         System.out.println("Stream Id: streams-match Max Stock Num: " + STOCKNUM + " Max Attribute Num: " + ATTRIBUTE_NUM +
@@ -101,10 +119,9 @@ public class TAMA {
 
             private void Match(){
                 int stock_id = this.v.StockId;
-                int index = this.threadIdx;
-                int stride = match_thread_num;
                 int attribute_num = v.AttributeNum;
-                for (int i = index; i < attribute_num; i += stride) {
+                for (int i = 0; i < attribute_num; i++) {
+                    if(!threadBucket[stock_id][threadIdx].bitSet[i])continue;
                     int attribute_id = this.v.eventVals[i].attributeId;
                     double val = this.v.eventVals[i].val;
                     for(int j = 0;j < LEVEL;j++){
@@ -153,6 +170,8 @@ public class TAMA {
                     " Sub Stock Id: " + stock_id + " Attribute Num: " + attributeNum);
             for(int i = 0;i < attributeNum;i++){
                 int attribute_id = v.subVals.get(i).attributeId;
+                conNum[stock_id].ConSumNum++;
+                conNum[stock_id].AttriConNum[attribute_id]++;
                 double low = v.subVals.get(i).min_val;
                 double high = v.subVals.get(i).max_val;
                 int start = 0;
@@ -203,11 +222,45 @@ public class TAMA {
         }
         BufferedWriter bw = new BufferedWriter(fw);
 
-        int[] matchT = {1,2,4,8,16,24};
+        int[] matchT = {1,2,4,8,16,32};
         //matcher
         event.foreach((k, v) -> {
-            if(eventNum%1000==0) {
-                match_thread_num = matchT[eventNum / 1000];
+            int stock_id = v.StockId;
+            if(eventNum%2000==0){
+                match_thread_num = matchT[(eventNum/2000)%6];
+		        //match_thread_num = 32;
+                //Task division
+                //Empty threadBucket
+                for(int i = 0;i < match_thread_num; i++){
+                    threadBucket[stock_id][i].executeNum = 0;
+                    for(int j = 0;j<ATTRIBUTE_NUM;j++){
+                        threadBucket[stock_id][i].bitSet[j] = false;
+                    }
+                }
+                boolean[] bit = new boolean[ATTRIBUTE_NUM];
+                for(int i=0;i<ATTRIBUTE_NUM;i++)bit[i]=false;
+                for(int i=0;i<ATTRIBUTE_NUM;i++){
+                    int max = 0;
+                    int n = 0;
+                    for(int j=0;j<ATTRIBUTE_NUM;j++){
+                        if(bit[j])continue;
+                        if(max < conNum[stock_id].AttriConNum[j]){
+                            max = conNum[stock_id].AttriConNum[j];
+                            n = j;
+                        }
+                    }
+                    bit[n] = true;
+                    int t = 0;
+                    int min = Integer.MAX_VALUE;
+                    for(int j=0;j<match_thread_num;j++){
+                        if(min > threadBucket[stock_id][j].executeNum){
+                            min = threadBucket[stock_id][j].executeNum;
+                            t = j;
+                        }
+                    }
+                    threadBucket[stock_id][t].executeNum+=max;
+                    threadBucket[stock_id][t].bitSet[n] = true;
+                }
             }
             //compute event access delay
             long tmpTime = System.currentTimeMillis();
@@ -224,24 +277,24 @@ public class TAMA {
             }catch (Exception e){
                 e.printStackTrace();
             }
-            int stockId = v.StockId;
-            for(int i=0;i<SubNum[stockId];i++){
-                sets[stockId][i].matched_num = 0;
+            for(int i=0;i<SubNum[stock_id];i++){
+                sets[stock_id][i].matched_num = 0;
             }
             String s = String.valueOf((System.nanoTime() - tmpTime)/1000000.0);
             eventNum++;
-            System.out.println(eventNum + " " + s + " " + matchNum);
+            System.out.println(eventNum+ " " + s + " " + matchNum+" " + match_thread_num);
             matchNum = 0;
             try {
                 bw.write(s + "\n");
             } catch (IOException e) {
+                System.err.println("write file failed!");
                 e.printStackTrace();
             }
         });
         final Topology index_topology = index_builder.build();
         final KafkaStreams stream_index = new KafkaStreams(index_topology, props);
 
-        props.put(StreamsConfig.APPLICATION_ID_CONFIG, "stream_matcher_1");
+        props.put(StreamsConfig.APPLICATION_ID_CONFIG, "stream_matcher");
         final Topology matcher_topology = match_builder.build();
         final KafkaStreams stream_matcher = new KafkaStreams(matcher_topology, props);
 
