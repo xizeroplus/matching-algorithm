@@ -11,6 +11,10 @@ Now, you should have started Kafka. If you are building a kafka cluster yourself
 
 Switch you directory to PhSHI-Kafka-Test, first ou need creat sub data and event data use creatSub.sh,creatZipfSub.sh and creatEvent.sh. creatZipfSub.sh creat the sub with Zipf distribution.
 
-eventProducer.sh send the evet frome event data. producer.sh send the sub data from sub data for rein and tama. OpIndex use producerOp.sh. oopindex.sh ,tama.sh and rein.sh run three static version of algorithm. First you start algoorithm, then send sub, after that send event. This test version will test 1,2,4,8,16,32 thread and each mode test 2000 events, please make sure you send the correct number of events. The result data will save in PhSHI-Kafka-Test/resources. The file has one column, save matching time, unit is ms.
+eventProducer.sh send the evet frome event data. producer.sh send the sub data from sub data for rein and tama. OpIndex use producerOp.sh.
+
+opindex.sh ,tama.sh and rein.sh run three static version of algorithm. First you start algoorithm, then send sub, after that send event.
+
+This test version will test 1,2,4,8,16,32 thread and each mode test 2000 events, please make sure you send the correct number of events. The result data will save in PhSHI-Kafka-Test/resources. The file has one column, save matching time, unit is ms.
 
 The rein-dynamic.sh is the dynamic version of rein. All operations are the same as befor. But the result data has three column, current sub number, matching time and current thread number. Note that every 20 events, we save their average match time and dynamically adjusted time. The unit of time for dynamic adjustment is microseconds.
