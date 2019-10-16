@@ -340,13 +340,15 @@ void intervalGenerator::GenPubList()
 		if(i == nexthot){
 			
 			Pub hot = GenHotPub();
+			hot.hotnum = hotsum;
 			hotlist.push_back(hot);
-			int halflife=random(400)+200;
-			hotlife.push_back(halflife); //200-600 half-life time
-			hotscale.push_back(random(100)+100); //100-200 reduce time
+			int halflife=random(1000)+1500; //1500-2500 half-life time
+			hotlife.push_back(halflife+i);
+			hotscale.push_back(random(200)+100); //100-300 reduce time
 			++hotsum;
-			nexthot += random(200) + 200; //200-400 step to create new hotspot
+			nexthot += random(400) + 800; //800-1200 step to create new hotspot
 			pubList.push_back(hot);
+			cout<<hotsum<<' '<<i<<' '<<halflife+i<<endl;
 		}
 		else{
 			Pub pub = GenOnePub();
@@ -362,7 +364,7 @@ void intervalGenerator::GenPubList()
         //fileStream << i << "\t";
         for (int j=0; j<pub.size; ++j)
             fileStream << pub.pairs[j].att << "\t" << pub.pairs[j].value << "\t";
-        fileStream << "\n";
+        fileStream << pub.hotnum << "\n";
     }
     fileStream.close();
 }
@@ -378,6 +380,7 @@ void intervalGenerator::ReadPubList(){
 			fileStream >> tmp.att >> tmp.value;
 			pub.pairs.push_back(tmp);
 		}
+		fileStream >> pub.hotnum;
 		pubList.push_back(pub);
 	}
 	fileStream.close();
@@ -465,7 +468,7 @@ void intervalGenerator::GenUniformValues(Pub &pub)
         while (CheckExist(a,x))
             x = random(attDom);
 		a.push_back(x);
-        pub.pairs[x].value = random(valDom/10)-valDom/20; //range of away from hot event: ±5%
+        pub.pairs[x].value = random(valDom/10)-valDom/20; //range of away from hot event: +-5%
     }
 	for (int i = 0; i < pub.size; i++){
 		pub.pairs[i].value += hotlist[0].pairs[i].value;
@@ -481,7 +484,7 @@ void intervalGenerator::GenZiefValues(Pub &pub)
 {
     for (int i = 0; i < pub.size; i++)
     {
-        int x = zipfDistribution(valDom/2, pubValalpha);
+        int x = zipfDistribution(valDom/20, pubValalpha); //+-5%
 		int sign = random(2);
         if(sign)pub.pairs[i].value = x;
 		else pub.pairs[i].value = -x;
@@ -506,6 +509,7 @@ void intervalGenerator::GenZiefValues(Pub &pub)
 		}
 	}
 	Pub &hot = hotlist[result];
+	pub.hotnum = result;
 	for (int i = 0; i < pub.size; i++){
 		pub.pairs[i].value += hot.pairs[i].value;
 		if (pub.pairs[i].value < 0) pub.pairs[i].value = 0;

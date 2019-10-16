@@ -10,18 +10,6 @@ int main(int argc, char **argv)
     int k;           // Number of constraints(predicates) in one sub.
     int m;              // Number of constraints in one pub.
     int valDom;         // Cardinality of values.
-	// -------------------distribution-----------------
-    int subAttDis;         // The distribution of attributes in subs and pubs. 0:uniform distribution | 1:Zipf distribution
-    int subValDis;         // The distribution of values in subs and pubs. 0:uniform
-    int pubAttDis;         // The distribution of attributes in subs and pubs. 0:uniform distribution | 1:Zipf distribution
-    int pubValDis;         // The distribution of values in subs and pubs. 0:uniform | 1:Zipf distribution   now using
-    double subAttalpha;       // Parameter for Zipf distribution.
-    double pubAttalpha;
-    double subValalpha;
-    double pubValalpha;  
-	//----------other 7 no use in current.-------------
-    double width;       // Width of a predicate. no use in current.
-    double equalRatio;  //no use in current.
     int old_buck_num;
     int new_buck_num;
 	double limitscale; //adjust limit
@@ -29,32 +17,35 @@ int main(int argc, char **argv)
 	int cstep; //adjustment time window
     ifstream parafile;
     parafile.open(string("./paras/paras_")+string(argv[1])+string(".txt"));
-    parafile >> subs >> pubs >> k >> m >> subAttDis >> subValDis >> pubAttDis >> pubValDis >> attDom >> valDom >> subAttalpha >>subValalpha >>  pubAttalpha >> pubValalpha >> width >> equalRatio >> old_buck_num >> new_buck_num>>limitscale>>newlevel>>cstep;
+    parafile >> subs >> pubs >> k >> m >> attDom >> valDom >> old_buck_num >> new_buck_num >> limitscale >> newlevel >> cstep;
     parafile.close();
-	const double percentscale[5] = {0.05,0.25,0.5,0.75,0.95};
+	const double percentscale[7] = {0.01,0.05,0.25,0.5,0.75,0.95,0.99};
+	const int percentscalelength = 7;
+	vector<double> matchDetailTime[7];
     //m = atts;           // Note that Rein requires m == atts.
     vector<double> insertTimeList;
     vector<double> matchTimeList;
     vector<double> matchSubList;
-    vector<int> matchDetailSub;
     vector<double> matchDetailPub;
-    vector<double> matchDetailTime[5];
+    string outputFileName, content;
 
 
     // Initiate generator
-    intervalGenerator gen(subs, pubs, k, m, subAttDis, subValDis, pubAttDis, pubValDis, attDom, valDom, subAttalpha ,subValalpha ,pubAttalpha, pubValalpha, width, equalRatio);
+    intervalGenerator gen(subs, pubs, k, m, 0, 0, 0, 1, attDom, valDom, 1, 1, 1, 1, 0.5, 0.3);
     gen.ReadSubList();
     gen.ReadPubList();
     cout << "read datalist finished" << endl;
 
     oldRein old_Rein(valDom, old_buck_num);
 	Rein new_Rein(valDom,10, new_buck_num, limitscale, newlevel);
+	Rein new_ReinSConly(valDom,10, new_buck_num, limitscale, newlevel);
 
 	ofstream fileStream;
 	int percentindex;
 	string windowcontent="";
 	bool firstchange=true;
 	double matchingtime = 0;
+	int totaladjusttime = 0;
 	
 	/////////////////////////////////start old rein///////////////////////////////////////////
     // insert
@@ -76,17 +67,16 @@ int main(int argc, char **argv)
         if (!((i+1)%100)) cout << "matching " << i+1 << "..." << endl;
         int matchSubs = 0;                              // Record the number of matched subscriptions.
         matchDetailPub.clear();
-        matchDetailSub.clear();
         Timer matchStart;
 
-        old_Rein.match(gen.pubList[i], matchSubs, gen.subList, matchDetailPub);
+        old_Rein.match(gen.pubList[i], matchSubs, matchDetailPub);
 
         int64_t eventTime = matchStart.elapsed_nano();  // Record matching time in nanosecond.
         matchTimeList.push_back((double) eventTime / 1000000);
         matchSubList.push_back(matchSubs);
-		for(int i=0;i<5;++i){
-			percentindex = (int) floor(matchSubs * percentscale[i]);
-			matchDetailTime[i].push_back(matchDetailPub[percentindex]);
+		for(int j=0;j<percentscalelength;++j){
+			percentindex = (int) floor(matchSubs * percentscale[j]);
+			matchDetailTime[j].push_back(matchDetailPub[percentindex]);
 		}
 
           
@@ -96,11 +86,11 @@ int main(int argc, char **argv)
 
 
     // output
-    string outputFileName = "./Detail/old_rein.txt";
-    string content = Util::Int2String(subs) + "\t" + Util::Double2String(Util::Average(insertTimeList)) + "\t" +
+    outputFileName = "./Detail/old_rein.txt";
+    content = Util::Int2String(subs) + "\t" + Util::Double2String(Util::Average(insertTimeList)) + "\t" +
                      Util::Double2String(Util::Average(matchTimeList)) + "\t" +
                      Util::Double2String(Util::Average(matchSubList)) + "\t";
-    for(int i=0;i<5;++i) content+=Util::Double2String(Util::Average(matchDetailTime[i]))+"\t";
+    for(int i=0;i<percentscalelength;++i) content+=Util::Double2String(Util::Average(matchDetailTime[i]))+"\t";
     Util::WriteData(outputFileName.c_str(), content);
 
 
@@ -114,9 +104,11 @@ int main(int argc, char **argv)
     matchSubList.clear();
 	firstchange=true;
     matchDetailPub.clear();
-    matchDetailSub.clear();
+
 	matchingtime = 0;
-	for(int i=0;i<5;++i) matchDetailTime[i].clear();
+	for(int i=0;i<percentscalelength;++i){
+		matchDetailTime[i].clear();
+	}
 	windowcontent="";
     // insert
 	for (int i = 0; i < subs; i++)
@@ -137,31 +129,32 @@ int main(int argc, char **argv)
         
         int matchSubs = 0;                              // Record the number of matched subscriptions.
         matchDetailPub.clear();
-        matchDetailSub.clear();
+
 		
         Timer matchStart;
 		int64_t eventTime;
-        new_Rein.match(gen.pubList[i], matchSubs, gen.subList, matchDetailPub);
+        new_Rein.match(gen.pubList[i], matchSubs, matchDetailPub);
 
         eventTime = matchStart.elapsed_nano();  // Record matching time in nanosecond.
         matchTimeList.push_back((double) eventTime / 1000000);
         matchSubList.push_back(matchSubs);
-		for(int i=0;i<5;++i){
-			percentindex = (int) floor(matchSubs * percentscale[i]);
-			matchDetailTime[i].push_back(matchDetailPub[percentindex]);
+		for(int j=0;j<percentscalelength;++j){
+			percentindex = (int) floor(matchSubs * percentscale[j]);
+			matchDetailTime[j].push_back(matchDetailPub[percentindex]);
 		}
 
 		if (!((i+1)%cstep)){
 			cout << "matching " << i+1 << "..." << endl;
 			if(i+1==pubs)break;
-				if(firstchange){
+				if(true){
 					matchingtime = Util::Average(matchTimeList);
-					firstchange=false;
+					//firstchange=false;
 				}
+			//windowcontent = to_string(i+1);
 			Timer changeStart;
 			int changenum=new_Rein.change(gen.subList,cstep,matchingtime,windowcontent);
 			int64_t changeTime = changeStart.elapsed_nano();
-			matchTimeList[i]+=(double) changeTime / 1000000;
+			totaladjusttime +=(double) changeTime / 1000000;
 			cout<<"change complete "<<changenum<<endl;
 			//new_Rein100.check();
 		}
@@ -173,18 +166,85 @@ int main(int argc, char **argv)
 
     // output
     outputFileName = "./Detail/new_Rein.txt";
-    content = Util::Int2String(new_buck_num) + "\t" + Util::Double2String(Util::Average(insertTimeList))+ "\t";
-                     content+=Util::Double2String(Util::Average(matchTimeList)) + "\t" +
-                     Util::Double2String(Util::Average(matchSubList))+ "\t";
-    for(int i=0;i<5;++i) content+=Util::Double2String(Util::Average(matchDetailTime[i]))+"\t";
+    content = Util::Int2String(newlevel) + "\t" + Util::Double2String(Util::Average(insertTimeList))+ "\t";
+    content += Util::Double2String(Util::Average(matchTimeList)) + "\t";
+	matchTimeList[0]+=totaladjusttime;
+	content += Util::Double2String(Util::Average(matchTimeList)) + "\t";
+	content += Util::Double2String(Util::Average(matchSubList))+ "\t";
+    for(int i=0;i<percentscalelength;++i) content+=Util::Double2String(Util::Average(matchDetailTime[i]))+"\t";
     Util::WriteData(outputFileName.c_str(), content);
 	
 	
-	outputFileName = "./Detail/detail.txt";
-	Util::WriteData(outputFileName.c_str(), windowcontent);
+	//outputFileName = "./Detail/detail.txt";
+	//Util::WriteData(outputFileName.c_str(), windowcontent);
 	
+	
+	
+	
+	////////////////////////////////////start new SConly//////////////////////////////////////////////////
+
 
 	
+    insertTimeList.clear();
+    matchTimeList.clear();
+    matchSubList.clear();
+	firstchange=true;
+    matchDetailPub.clear();
+
+	matchingtime = 0;
+	for(int i=0;i<percentscalelength;++i){
+		matchDetailTime[i].clear();
+	}
+	windowcontent="";
+    // insert
+	for (int i = 0; i < subs; i++)
+    {
+        //Timer subStart;
+		int64_t insertTime;
+        new_ReinSConly.insert(gen.subList[i],insertTime);                       // Insert sub[i] into data structure.
+
+        //int64_t insertTime = subStart.elapsed_nano();   // Record inserting time in nanosecond.
+        insertTimeList.push_back((double) insertTime / 1000000);
+    }
+	
+    cout << "insert new_ReinSConly finished" << endl;
+	//new_Rein100.check();
+    // match
+    for (int i = 0; i < pubs; i++)
+    {
+        
+        int matchSubs = 0;                              // Record the number of matched subscriptions.
+        matchDetailPub.clear();
+
+        Timer matchStart;
+		int64_t eventTime;
+        new_ReinSConly.match(gen.pubList[i], matchSubs, matchDetailPub);
+
+        eventTime = matchStart.elapsed_nano();  // Record matching time in nanosecond.
+        matchTimeList.push_back((double) eventTime / 1000000);
+        matchSubList.push_back(matchSubs);
+		for(int j=0;j<percentscalelength;++j){
+			percentindex = (int) floor(matchSubs * percentscale[j]);
+			matchDetailTime[j].push_back(matchDetailPub[percentindex]);
+		}
+
+		if (!((i+1)%cstep)){
+			cout << "matching " << i+1 << "..." << endl;
+		}
+    }
+
+    cout << "matching new_ReinSConly finished" << endl;
+
+	
+
+    // output
+    outputFileName = "./Detail/new_ReinSConly.txt";
+    content = Util::Int2String(new_buck_num) + "\t" + Util::Double2String(Util::Average(insertTimeList))+ "\t";
+                     content+=Util::Double2String(Util::Average(matchTimeList)) + "\t" +
+                     Util::Double2String(Util::Average(matchSubList))+ "\t";
+    for(int i=0;i<percentscalelength;++i) content+=Util::Double2String(Util::Average(matchDetailTime[i]))+"\t";
+    Util::WriteData(outputFileName.c_str(), content);
+
 
     return 0;
 }

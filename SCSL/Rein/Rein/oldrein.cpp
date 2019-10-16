@@ -15,28 +15,28 @@ void oldRein::insert(IntervalSub &sub)
 		//cout<<"ins high "<<i<<endl;
         data[cnt.att][1][c.val / buckStep].push_back(c);
     }
+	++subnum;
 }
 
 
-void oldRein::match(const Pub &pub, int &matchSubs, const vector<IntervalSub> &subList, vector<double> &matchDetailPub)
+void oldRein::match(const Pub &pub, int &matchSubs, vector<double> &matchDetailPub)
 {
 
     Timer t;
-    int b = subList.size();
-    vector<bool> bits(b, false);
+    vector<bool> bits(subnum, false);
     for (int i = 0; i < pub.size; i++)
     {
-        Timer t0;
+        //Timer t0;
         int value = pub.pairs[i].value, att = pub.pairs[i].att, buck = value / buckStep;
         vector<Combo> &data_0 = data[att][0][buck];
 
-        Timer t1;
+        //Timer t1;
         int data_0_size = data_0.size();
         for (int k = 0; k < data_0_size; k++)
             if (data_0[k].val > value)
                 bits[data_0[k].subID] = true;
 
-        Timer t2;
+        //Timer t2;
         for (int j = buck + 1; j < bucks; j++){
             vector<Combo> &data_1 = data[att][0][j];
             int data_1_size = data_1.size();
@@ -44,14 +44,14 @@ void oldRein::match(const Pub &pub, int &matchSubs, const vector<IntervalSub> &s
                 bits[data_1[k].subID] = true;
         }
 
-        Timer t3;
+        //Timer t3;
         vector<Combo> &data_2 = data[att][1][buck];
         int data_2_size = data_2.size();
         for (int k = 0; k < data_2_size; k++)
             if (data_2[k].val < value)
                 bits[data_2[k].subID] = true;
 
-        Timer t4;
+        //Timer t4;
         for (int j = buck - 1; j >= 0; j--)
         {
             vector<Combo> &data_3 = data[att][1][j];
@@ -64,7 +64,7 @@ void oldRein::match(const Pub &pub, int &matchSubs, const vector<IntervalSub> &s
 
     //Timer t5;
     
-    for (int i = 0; i < b; i++)
+    for (int i = 0; i < subnum; i++)
         if (!bits[i])
         {
             matchDetailPub.push_back(t.elapsed_nano() / 1000000.0);

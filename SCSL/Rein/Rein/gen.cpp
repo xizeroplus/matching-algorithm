@@ -1,6 +1,6 @@
 #include <iostream>
-#include "rein.h"
-#include "oldrein.h"
+#include "generator.h"
+
 using namespace std;
 int main(int argc, char **argv)
 {
@@ -10,31 +10,21 @@ int main(int argc, char **argv)
     int k;           // Number of constraints(predicates) in one sub.
     int m;              // Number of constraints in one pub.
     int valDom;         // Cardinality of values.
-    int subAttDis;         // The distribution of attributes in subs and pubs. 0:uniform distribution | 1:Zipf distribution
-    int subValDis;         // The distribution of values in subs and pubs. 0:uniform
-    int pubAttDis;         // The distribution of attributes in subs and pubs. 0:uniform distribution | 1:Zipf distribution
-    int pubValDis;         // The distribution of values in subs and pubs. 0:uniform
-    double subAttalpha;       // Parameter for Zipf distribution.
-    double pubAttalpha;
-    double subValalpha;
-    double pubValalpha;
-    double width;       // Width of a predicate.
-    double equalRatio;
     int old_buck_num;
     int new_buck_num;
-
+	double limitscale; //adjust limit
+	int newlevel; //number of levels
+	int cstep; //adjustment time window
     ifstream parafile;
     parafile.open(string("./paras/paras_")+string(argv[1])+string(".txt"));
-    parafile >> subs >> pubs >> k >> m >> subAttDis >> subValDis >> pubAttDis >> pubValDis >> attDom >> valDom >> subAttalpha >>subValalpha >>  pubAttalpha >> pubValalpha >> width >> equalRatio >> old_buck_num >> new_buck_num;
+    parafile >> subs >> pubs >> k >> m >> attDom >> valDom >> old_buck_num >> new_buck_num >> limitscale >> newlevel >> cstep;
     parafile.close();
 
-    //m = atts;           // Note that Rein requires m == atts.
-	width=1;
 
-	//pubValDis=1;
-	//pubValalpha=1;
+
+
     // Initiate generator
-    intervalGenerator gen(subs, pubs, k, m, subAttDis, subValDis, pubAttDis, pubValDis, attDom, valDom, subAttalpha ,subValalpha ,pubAttalpha, pubValalpha, width, equalRatio);
+    intervalGenerator gen(subs, pubs, k, m, 0, 0, 0, 1, attDom, valDom, 1, 1, 1, 1, 0.5, 0.3);
     gen.GenSubList();
     gen.GenPubList();
     cout << "gen datalist finished" << endl;

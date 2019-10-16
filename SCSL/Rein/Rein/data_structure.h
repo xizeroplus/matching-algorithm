@@ -63,6 +63,7 @@ struct changeaction{
 struct Pub{
     int size;
     vector<Pair> pairs;
+	int hotnum;
 };
 
 struct WeightPair{

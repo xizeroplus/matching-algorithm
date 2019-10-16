@@ -8,8 +8,10 @@ void Rein::insert(IntervalSub &sub, int64_t &origintime)
 		for(int j = 0; j < sub.size; ++j){
 			IntervalCnt &cnt = sub.constraints[j];
 			poss *=  (cnt.highValue-cnt.lowValue)*1.0/valDom;
-			level = (int) floor(log(poss)/log(0.1)/Dom*newlevel);
 		}
+		level = (int) floor(log(poss)/log(0.1)/Dom*newlevel);
+		if(level<0)level=0;
+		else if(level>=newlevel)level=newlevel-1;
 		int indexId=LvSize[level].size(),buckStep=LvBuckStep[level];
 		subtolevel[sub.id] = level;
 		originlevel[sub.id] = level;
@@ -34,7 +36,7 @@ void Rein::insert(IntervalSub &sub, int64_t &origintime)
 
 
 
-void Rein::match(const Pub &pub, int &matchSubs, const vector<IntervalSub> &subList, vector<double> &matchDetailPub)
+void Rein::match(const Pub &pub, int &matchSubs, vector<double> &matchDetailPub)
 {
 
 	Timer t;
@@ -97,15 +99,32 @@ void Rein::match(const Pub &pub, int &matchSubs, const vector<IntervalSub> &subL
 }
 
 int Rein::change(const vector<IntervalSub> &subList,int cstep, double matchingtime, string &windowcontent){
-	int changenum=0,totalshouldchange=0,limitnum=4000;
+	int changenum=0,totalshouldchange=0,limitnum=subnum/100;//maxcount=0;
 	bool stopflag=false;
 	if(!firstchange){
 		limitnum = (int) (matchingtime * cstep * limitscale / adjustcost);
 	}
+	Timer t;
+	/*for(int i=0;i<subnum;++i){
+		if(countlist[i]>maxcount){
+			maxcount=countlist[i];
+		}
+	}*/
+	//int zerocount=0,ninecount=0;
 	for(int i=0;i<subnum;++i){
-		int level=originlevel[i]-(int)round((double)countlist[i]/cstep*originlevel[i]),oldlevel=subtolevel[i];
-		if(level == oldlevel) continue;
+		//int level=newlevel-1-(int)floor((double)countlist[i]/(maxcount+1e-6)*newlevel);
+		//int level=originlevel[i]-(int)round((double)countlist[i]/cstep*originlevel[i]);
+		int level=(int)round(pow(1-(double)countlist[i]/cstep,2)*originlevel[i]);
+		int oldlevel=subtolevel[i];
+		/*if(countlist[i]==0){
+			level=oldlevel+1;
+			if(level>=newlevel)
+				level=oldlevel;
+		}*/
+		//if(level == oldlevel) continue;
 		int distancelevel = abs(level-oldlevel);
+		if(distancelevel==0) continue;
+		if(distancelevel==1 && changelist[1].size()>=limitnum) continue;
 		changeaction tmp;
 		tmp.id = i;
 		tmp.oldlevel = oldlevel;
@@ -114,38 +133,62 @@ int Rein::change(const vector<IntervalSub> &subList,int cstep, double matchingti
 		++totalshouldchange;
 		
 	}
+	/*vector<int> &_Lv = LvSize[0];
+	int l=_Lv.size();
+	int num=0;
+	for(int j=0;j<l;++j)
+		if(_Lv[j]!=-1)
+			++num;
+	cout<<"level zero: "<<l<<' '<<num<<endl;*/
+	//cout<<"maxcount: "<<maxcount<<endl;
 	cout<<"totalshouldchange: "<<totalshouldchange<<endl;
-	windowcontent += to_string(totalshouldchange) +"\t";
-	Timer t;
+	//windowcontent += to_string(totalshouldchange) +"\t";
+	
 	for(int i=newlevel-1;i>0;--i){
+		//cout<<i<<' ';
 		int l=changelist[i].size();
+		//cout<<l<<endl;
 		for(int ii=0;ii<l;++ii){
+			
 			changeaction &action = changelist[i][ii];
 			int id=action.id,oldlevel=action.oldlevel,level=action.newlevel;
-			int indexId=LvSize[level].size(),oldindexId=-1,buckStep=LvBuckStep[level],oldbuckStep=LvBuckStep[oldlevel];
+			int indexId;
+			if(emptymark[level].empty()){
+				indexId=LvSize[level].size();
+				LvSize[level].push_back(id);
+			}
+			else{
+				indexId=emptymark[level].back();
+				emptymark[level].pop_back();
+				LvSize[level][indexId]=id;
+			}
+			int oldindexId=-1,buckStep=LvBuckStep[level],oldbuckStep=LvBuckStep[oldlevel];
 			subtolevel[id]=level;
 			IntervalSub sub=subList[id];
+			
+			
+			
 			for(int j=0;j<sub.size;++j){
 				IntervalCnt cnt = sub.constraints[j];
 				vector<kCombo>::iterator ed=data[oldlevel][cnt.att][0][cnt.lowValue/oldbuckStep].end();
-				bool fl=false;
+				//bool fl=false;
 				for(vector<kCombo>::iterator it=data[oldlevel][cnt.att][0][cnt.lowValue/oldbuckStep].begin();it!=ed;++it)
 					if(it->subID==id){
 						oldindexId = it->indexId;
 						data[oldlevel][cnt.att][0][cnt.lowValue/oldbuckStep].erase(it);
-						fl=true;
+						//fl=true;
 						break;
 					}
-				if(!fl)cout<<"error!not found lowValue"<<endl;
-				fl=false;
+				//if(!fl)cout<<"error!not found lowValue"<<endl;
+				//fl=false;
 				ed=data[oldlevel][cnt.att][1][cnt.highValue/oldbuckStep].end();
 				for(vector<kCombo>::iterator it=data[oldlevel][cnt.att][1][cnt.highValue/oldbuckStep].begin();it!=ed;++it)
 					if(it->subID==id){
 						data[oldlevel][cnt.att][1][cnt.highValue/oldbuckStep].erase(it);
-						fl=true;
+						//fl=true;
 						break;
 					}
-				if(!fl)cout<<"error!not found highValue"<<endl;
+				//if(!fl)cout<<"error!not found highValue"<<endl;
 				
 				
 				kCombo c;
@@ -156,10 +199,9 @@ int Rein::change(const vector<IntervalSub> &subList,int cstep, double matchingti
 				c.val = cnt.highValue;
 				data[level][cnt.att][1][c.val / buckStep].push_back(c);
 			}
-			if(oldindexId!=-1 && LvSize[oldlevel][oldindexId]==sub.id)
-					LvSize[oldlevel][oldindexId]=-1;
-			else cout<<"error!not found LvSize "<<oldindexId<<" "<<LvSize[oldlevel][oldindexId]<<" "<<sub.id<<endl;
-			LvSize[level].push_back(sub.id);
+			LvSize[oldlevel][oldindexId]=-1;
+			emptymark[oldlevel].push_back(oldindexId);
+			
 			++changenum;
 			if(changenum>=limitnum){
 				stopflag=true;
@@ -168,13 +210,15 @@ int Rein::change(const vector<IntervalSub> &subList,int cstep, double matchingti
 		}
 		if(stopflag)break;
 	}
-	if(firstchange){
+
+	if(changenum){
 		adjustcost = (double)t.elapsed_nano() / 1000000 / changenum;
 		firstchange = false;
 	}
 	for(int i=newlevel-1;i>0;--i) changelist[i].clear();
 	memset(countlist, 0, sizeof(countlist));
-	windowcontent += to_string(changenum) +"\n";
+	//windowcontent += to_string(changenum) +"\n";
+	//cout<<zerocount<<" "<<ninecount<<endl;
 	return changenum;
 }
 	
