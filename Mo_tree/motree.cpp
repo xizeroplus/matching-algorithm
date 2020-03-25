@@ -308,7 +308,12 @@ void Motree::matchInPubdata(const vector<vector<int> > &mark, int bucketID, int 
             for (int k = 0; k < pubdata[id].size(); k++)
             {
                 const Pub &pub = pubList[pubdata[id][k]];
-				//cout<<pub.id<<endl;
+				/*
+				here should check whether pub is out of time
+				if it is, simply delete pubdata[id][k], just like what "deleteFromPubdata" function does (line 495)
+				because other algorithms we compared with have no information about time
+				for fair comparison of "matching time", the common data structure does not add "time"
+				*/
 				if(!(pub.lng > sub.lowlng && pub.lng < sub.highlng && pub.lat > sub.lowlat && pub.lat < sub.highlat))
 					continue;
 				bool flag = true;
