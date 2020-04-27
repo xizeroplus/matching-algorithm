@@ -1,0 +1,47 @@
+### Java template
+*.class
+
+# Package Files #
+# *.jar
+*.war
+*.ear
+
+HELP.md
+target/
+.mvn/wrapper/maven-wrapper.jar
+.mvn/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+
+### VS Code ###
+.vscode/
+
+
+#data
+Stream-data/
+eventData.txt
+*.txt
+
+.DS_Stroe
+*.zip
