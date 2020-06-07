@@ -9,24 +9,29 @@ int main(int argc, char **argv)
     int cons;           // Number of constraints(predicates) in one sub.
     int m;              // Number of constraints in one pub.
     int valDom;         // Cardinality of values.
+    int attDis;         // The distribution of attributes in subs and pubs. 0:uniform distribution | 1:Zipf distribution
+    int valDis;         // The distribution of values in subs and pubs. 0:uniform
+    double alpha;       // Parameter for Zipf distribution.
     double width;       // Width of a predicate.
     int level;
     int cells;
 
     freopen("paras.txt", "r", stdin);
-    cin >> subs >> pubs >> atts >> cons >> m >> valDom >> level >> cells;
+    cin >> subs >> pubs >> atts >> cons >> m >> attDis >> valDis >> valDom;
+    cin >> alpha >> width;
+    cin >> level >> cells;
 
     vector<double> insertTimeList;
     vector<double> matchTimeList;
     vector<double> matchSubList;
 
     // Initiate generator
-    intervalGenerator gen(subs, pubs, atts, cons, m, valDom);
+    intervalGenerator gen(subs, pubs, atts, cons, m, attDis, valDis, valDom, alpha, width);
     gen.GenSubList();
     gen.GenPubList();
 
 
-    Htree a(atts, level, valDom);
+    Htree a(atts, level, cells, valDis, valDom);
 
     // insert
     for (int i = 0; i < subs; i++)
