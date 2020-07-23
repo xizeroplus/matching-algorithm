@@ -1,0 +1,4 @@
+Here is the source code for Comat
+Run make.sh to compile and run.sh to run
+Most of the experiments are taken in main.cpp
+Implementation of Comat with whole process and the last experiment are in comat.cpp
