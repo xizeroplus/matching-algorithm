@@ -426,9 +426,9 @@ void Motree::deleteFromBucket(const vector<int> &mark, int bucketID, int layer, 
         return;
     }
     if(!layer)
-        insertToBucket(mark, (bucketID + mark[layer]) * 10, layer + 1, subID);
+        deleteFromBucket(mark, (bucketID + mark[layer]) * 10, layer + 1, subID);
     else
-        insertToBucket(mark, (bucketID + mark[layer]) * subcells, layer + 1, subID);
+        deleteFromBucket(mark, (bucketID + mark[layer]) * subcells, layer + 1, subID);
 }
 
 
@@ -483,5 +483,5 @@ void Motree::deleteFromPubdata(const vector<int> &mark, int bucketID, int layer,
         cerr<<"cannot found pub "<<pubID<<"in "<<currentbucket<<endl;
         return;
     }
-    insertToPubdata(mark, (bucketID + mark[layer]) * pubcells, layer + 1, pubID);
+    deleteFromPubdata(mark, (bucketID + mark[layer]) * pubcells, layer + 1, pubID);
 }
