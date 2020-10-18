@@ -45,7 +45,7 @@ int main(int argc, char **argv)
 	string windowcontent="";
 	bool firstchange=true;
 	double matchingtime = 0;
-	int totaladjusttime = 0;
+	double totaladjusttime = 0;
 	
 	/////////////////////////////////start old rein///////////////////////////////////////////
     // insert
