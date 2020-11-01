@@ -2,18 +2,18 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-	<groupId>cn.edu.cn.DaPF</groupId>
-<!--		<artifactId>DaPF-createSub</artifactId>-->
-<!--		<artifactId>DaPF-createEvent</artifactId>-->
-<!--		<artifactId>DaPF-subProducer</artifactId>-->
-<!--		<artifactId>DaPF-eventProducer</artifactId>-->
-		<artifactId>DaPF-reinDynamic</artifactId>
-<!--		<artifactId>DaPF-rein</artifactId>-->
-<!--		<artifactId>DaPF-infoFeedBack</artifactId>-->
-<!--		<artifactId>DaPF-original-rein-dyn</artifactId>-->
+	<groupId>cn.edu.cn.Lap</groupId>
+<!--		<artifactId>Lap-createSub</artifactId>-->
+<!--		<artifactId>Lap-createEvent</artifactId>-->
+<!--		<artifactId>Lap-subProducer</artifactId>-->
+<!--		<artifactId>Lap-eventProducer</artifactId>-->
+		<artifactId>Lap-reinDynamic</artifactId>
+<!--		<artifactId>Lap-rein</artifactId>-->
+<!--		<artifactId>Lap-infoFeedBack</artifactId>-->
+<!--		<artifactId>Lap-original-rein-dyn</artifactId>-->
 	<version>0.0.1</version>
-	<name>DaPF</name>
-	<description>DaPF project for maven</description>
+	<name>Lap</name>
+	<description>Lap project for maven</description>
 
 	<properties>
 		<java.version>11</java.version>
@@ -80,7 +80,7 @@
 					<archive>
 						<manifest>
 							<!-- 主函数的入口 -->
-							<mainClass>core.DaPF_REIN</mainClass>
+							<mainClass>core.Lap_REIN</mainClass>
 <!--							<mainClass>EventSender.EventProducer</mainClass>-->
 <!--							<mainClass>Client.InfoFeedBack</mainClass>-->
 <!--							<mainClass>Client.SubProducer</mainClass>-->

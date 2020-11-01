@@ -20,7 +20,7 @@ import java.util.ArrayList;
 import java.util.Properties;
 import java.util.concurrent.*;
 
-public class DaPF_REIN {
+public class Lap_REIN {
     // matcher capabilities
     private static int ATTRIBUTE_NUM = 60;
     private final static int MAX_VALUE = 1000;
@@ -97,7 +97,7 @@ public class DaPF_REIN {
         String config_filename = "";
 
         if(args.length < 3){
-            System.err.println("Usage: DaPF_REIN -matchconfigfile -expdelaytime -maxattr ");
+            System.err.println("Usage: Lap_REIN -matchconfigfile -expdelaytime -maxattr ");
             System.exit(1);
         }
         try{
@@ -109,7 +109,7 @@ public class DaPF_REIN {
             ATTRIBUTE_NUM = Integer.parseInt(args[2]);
             BucketList = new Bucket[STOCK_NUM][ATTRIBUTE_NUM][2][PART];
         } catch (Throwable e){
-            System.err.println("Usage: DaPF_REIN -matchconfigfile -expdelaytime -maxattr ");
+            System.err.println("Usage: Lap_REIN -matchconfigfile -expdelaytime -maxattr ");
             e.printStackTrace();
             System.exit(1);
         }
@@ -128,7 +128,7 @@ public class DaPF_REIN {
         }
 
         // logger
-        Logger logger = Logger.getLogger(DaPF_REIN.class);
+        Logger logger = Logger.getLogger(Lap_REIN.class);
         SimpleLayout layout = new SimpleLayout();
         try{
             FileAppender logFileAppender=new FileAppender(layout, properties.getProperty("LogFile"));
